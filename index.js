@@ -1,8 +1,15 @@
 const express = require("express");
+const logger = require("morgan");
+
 const app = express();
 const PORT = 3001;
 
 app.use(express.json());
+
+logger.token('content', (request) => {
+    return JSON.stringify(request.body);
+})
+app.use(logger(':method :url :status :res[content-length] - :response-time ms :content'));
 
 const createNewId = () => {
     return Math.floor(Math.random() * 1000);
