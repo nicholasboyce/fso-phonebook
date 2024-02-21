@@ -2,6 +2,30 @@ const express = require("express");
 const app = express();
 const PORT = 3001;
 
+app.use(express.json());
+
+const createNewId = () => {
+    return Math.floor(Math.random() * 1000);
+}
+
+const isValid = (entry) => {
+    let message = null;
+    if (!entry || !entry.name || !entry.number) {
+        message = {
+            error: "Content missing"
+        }
+    } else if (currNames.has(entry.name)) {
+        message = {
+            error: "Name must be unique"
+        }
+    } else if (currNumbers.has(entry.number)) {
+        message = {
+            error: "Number must be unique"
+        }
+    }
+    return message
+}
+
 let persons = [
     { 
       "id": 1,
@@ -25,6 +49,10 @@ let persons = [
     }
 ];
 
+let currIds = new Set(persons.map(p => p.id));
+let currNames = new Set(persons.map(p => p.name));
+let currNumbers = new Set(persons.map(p => p.number));
+
 app.get('/info', (request, response) => {
     const length = persons.length;
     const time = new Date();
@@ -33,6 +61,25 @@ app.get('/info', (request, response) => {
 
 app.get('/api/persons', (request, response) => {
     response.json(persons);
+})
+
+app.post('/api/persons', (request, response) => {
+    const newPerson = request.body;
+    const error = isValid(newPerson);
+    if (error) {
+        return response.status(400).json(error)
+    }
+    let newId = createNewId();
+    while (newId in currIds) {
+        newId = createNewId();
+    }
+    newPerson.id = newId;
+    persons = persons.concat(newPerson);
+    currIds.add(newId);
+    currNames.add(newPerson.name);
+    currNumbers.add(newPerson.number);
+    response.status(201);
+    response.json(newPerson);  
 })
 
 app.get('/api/persons/:id', (request, response) => {
@@ -48,7 +95,11 @@ app.get('/api/persons/:id', (request, response) => {
 
 app.delete('/api/persons/:id', (request, response) => {
     const id = Number(request.params.id);
+    const target = persons.find(p => p.id === id);
     persons = persons.filter(p => p.id !== id);
+    currIds.delete(id);
+    currNames.delete(target.name);
+    currNumbers.delete(target.number);
     response.status(204).end();
 })
 
