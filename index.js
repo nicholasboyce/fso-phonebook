@@ -38,32 +38,9 @@ const isValid = (entry) => {
     return message
 }
 
-let persons = [
-    { 
-      "id": 1,
-      "name": "Arto Hellas", 
-      "number": "040-123456"
-    },
-    { 
-      "id": 2,
-      "name": "Ada Lovelace", 
-      "number": "39-44-5323523"
-    },
-    { 
-      "id": 3,
-      "name": "Dan Abramov", 
-      "number": "12-43-234345"
-    },
-    { 
-      "id": 4,
-      "name": "Mary Poppendieck", 
-      "number": "39-23-6423122"
-    }
-];
-
-let currIds = new Set(persons.map(p => p.id));
-let currNames = new Set(persons.map(p => p.name));
-let currNumbers = new Set(persons.map(p => p.number));
+let currIds = new Set();
+let currNames = new Set();
+let currNumbers = new Set();
 
 app.get('/info', (request, response) => {
     let length = 0;
@@ -110,20 +87,39 @@ app.get('/api/persons/:id', (request, response) => {
     Person
         .findById(request.params.id)
         .then(person => {
-            response.json(person);
-        });
+            if (person) {
+                response.json(person);
+            } else {
+                response.status(404).end();
+            }
+        })
+        .catch(error => next(error));
 })
 
 app.delete('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id);
-    const target = persons.find(p => p.id === id);
-    persons = persons.filter(p => p.id !== id);
-    currIds.delete(id);
-    currNames.delete(target.name);
-    currNumbers.delete(target.number);
-    response.status(204).end();
+    Person
+        .findByIdAndDelete(request.params.id)
+        .then(result => {
+            currIds.delete(request.params.id);
+            currNames.delete(result.name);
+            currNumbers.delete(result.number);
+            response.status(204).end();
+        })
+        .catch(error => next(error));
 })
 
 app.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
 })
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message);
+  
+    if (error.name === 'CastError') {
+      return response.status(400).send({ error: 'malformatted id' });
+    } 
+  
+    next(error);
+}
+  
+app.use(errorHandler)

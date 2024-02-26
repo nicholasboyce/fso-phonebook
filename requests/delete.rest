@@ -1,11 +1,1 @@
-DELETE http://localhost:3001/api/persons/4
-
-###
-POST http://localhost:3001/api/persons/ HTTP/1.1
-Content-Type: application/json
-X-CODE: hey gurl
-
-{      
-    "name": "Mary Poppendieck",
-    "number": "39-23-6423122"
-}
+DELETE http://localhost:3001/api/persons/65dc05d6dd3c3b22b167cc28
