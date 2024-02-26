@@ -1,6 +1,8 @@
 const express = require("express");
 const logger = require("morgan");
 const cors = require("cors");
+require('dotenv').config();
+const Person = require("./models/person");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -64,43 +66,52 @@ let currNames = new Set(persons.map(p => p.name));
 let currNumbers = new Set(persons.map(p => p.number));
 
 app.get('/info', (request, response) => {
-    const length = persons.length;
-    const time = new Date();
-    response.send(`<p>Phonebook has info for ${length} people</p><p>${time.toString()}</p>`)
+    let length = 0;
+    Person
+        .find({})
+        .then(result => {
+            const time = new Date();
+            if (result.length) {
+                length = result.length;
+            }
+            response.send(`<p>Phonebook has info for ${length} people</p><p>${time.toString()}</p>`)
+        });
 })
 
 app.get('/api/persons', (request, response) => {
-    response.json(persons);
+    Person
+        .find({})
+        .then(persons => {
+            response.json(persons);
+        });
 })
 
 app.post('/api/persons', (request, response) => {
-    const newPerson = request.body;
-    const error = isValid(newPerson);
+    const error = isValid(request.body);
     if (error) {
         return response.status(400).json(error)
     }
-    let newId = createNewId();
-    while (newId in currIds) {
-        newId = createNewId();
-    }
-    newPerson.id = newId;
-    persons = persons.concat(newPerson);
-    currIds.add(newId);
-    currNames.add(newPerson.name);
-    currNumbers.add(newPerson.number);
-    response.status(201);
-    response.json(newPerson);  
+    const newPerson = new Person({
+        name: request.body.name,
+        number: request.body.number,
+    });
+    newPerson
+        .save()
+        .then(savedPerson => {
+            currIds.add(savedPerson.id);
+            currNames.add(savedPerson.name);
+            currNumbers.add(savedPerson.number);
+            response.status(201);
+            response.json(savedPerson);  
+        });
 })
 
 app.get('/api/persons/:id', (request, response) => {
-    const id = Number(request.params.id);
-    const person = persons.find(p => p.id === id);
-
-    if (person) {
-        response.json(person);
-    } else {
-        response.status(404).end();
-    }
+    Person
+        .findById(request.params.id)
+        .then(person => {
+            response.json(person);
+        });
 })
 
 app.delete('/api/persons/:id', (request, response) => {
